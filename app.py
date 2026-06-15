@@ -1,5 +1,5 @@
 import streamlit as st
-from google import genai
+import google.generativeai as genai
 from dotenv import load_dotenv
 import os
 from datetime import datetime
@@ -57,7 +57,9 @@ padding-top:1rem;
 load_dotenv()
 create_database()
 
-client = genai.Client(api_key=os.getenv("GEMINI_API_KEY"))
+genai.configure(
+    api_key=os.getenv("GEMINI_API_KEY")
+)
 
 if "messages" not in st.session_state:
     st.session_state.messages = []
@@ -162,10 +164,9 @@ Current User Message:
 """
 
         try:
-            response = client.models.generate_content(
-                model="gemini-3.5-flash",
-                contents=prompt
-            )
+            model = genai.GenerativeModel("gemini-3.5-flash")
+
+response = model.generate_content(prompt)
 
             raw = response.text
 
