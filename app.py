@@ -13,7 +13,7 @@ from database import create_database, save_journal, get_entries
 st.set_page_config(page_title="MindCare AI", page_icon="🧠", layout="wide")
 st.sidebar.image(
     "logo.png",
-    width=300
+    use_container_width=True
 )
 st.markdown("""
 <style>
@@ -135,6 +135,7 @@ with tab1:
     if user_input:
 
         history = ""
+
         for msg in st.session_state.messages[-6:]:
             history += f"{msg['role']}: {msg['message']}\n"
 
@@ -142,7 +143,8 @@ with tab1:
 You are MindCare AI.
 
 Talk like a caring, emotionally intelligent friend.
-Be warm, natural and conversational.Give atleast 70 words.
+Be warm, natural and conversational.
+Give at least 70 words.
 
 Return EXACTLY:
 
@@ -164,9 +166,9 @@ Current User Message:
 """
 
         try:
-            model = genai.GenerativeModel("gemini-3.5-flash")
+            model = genai.GenerativeModel("gemini-2.5-flash")
 
-response = model.generate_content(prompt)
+            response = model.generate_content(prompt)
 
             raw = response.text
 
@@ -175,18 +177,38 @@ response = model.generate_content(prompt)
             reasoning = ""
 
             for line in raw.splitlines():
+
                 if line.startswith("EMOTION:"):
-                    emotion = line.replace("EMOTION:", "").strip()
+                    emotion = line.replace(
+                        "EMOTION:",
+                        ""
+                    ).strip()
+
                 elif line.startswith("WELLNESS_SCORE:"):
                     try:
-                        score = int(line.replace("WELLNESS_SCORE:", "").strip())
+                        score = int(
+                            line.replace(
+                                "WELLNESS_SCORE:",
+                                ""
+                            ).strip()
+                        )
                     except:
                         pass
 
             if "REASONING:" in raw and "RESPONSE:" in raw:
-                reasoning = raw.split("REASONING:",1)[1].split("RESPONSE:",1)[0].strip()
+                reasoning = (
+                    raw.split("REASONING:", 1)[1]
+                    .split("RESPONSE:", 1)[0]
+                    .strip()
+                )
 
-            ai_reply = raw.split("RESPONSE:",1)[1].strip() if "RESPONSE:" in raw else raw
+            if "RESPONSE:" in raw:
+                ai_reply = raw.split(
+                    "RESPONSE:",
+                    1
+                )[1].strip()
+            else:
+                ai_reply = raw
 
             st.session_state.analysis = {
                 "emotion": emotion,
@@ -194,28 +216,52 @@ response = model.generate_content(prompt)
                 "reasoning": reasoning
             }
 
-            st.session_state.messages.append({"role":"user","message":user_input})
-            st.session_state.messages.append({"role":"assistant","message":ai_reply})
+            st.session_state.messages.append(
+                {
+                    "role": "user",
+                    "message": user_input
+                }
+            )
+
+            st.session_state.messages.append(
+                {
+                    "role": "assistant",
+                    "message": ai_reply
+                }
+            )
 
         except Exception as e:
-            st.error(str(e))
+            st.error(f"Gemini Error: {e}")
 
     if st.session_state.analysis:
 
         score = st.session_state.analysis["score"]
 
-        st.success(f"AI Detected Emotion: {st.session_state.analysis['emotion']}")
+        st.success(
+            f"AI Detected Emotion: {st.session_state.analysis['emotion']}"
+        )
 
-        fig = go.Figure(go.Indicator(
-            mode="gauge+number",
-            value=score,
-            title={"text":"Wellness Score ❤️"},
-            gauge={"axis":{"range":[0,100]}}
-        ))
+        fig = go.Figure(
+            go.Indicator(
+                mode="gauge+number",
+                value=score,
+                title={"text": "Wellness Score ❤️"},
+                gauge={
+                    "axis": {
+                        "range": [0, 100]
+                    }
+                }
+            )
+        )
 
-        st.plotly_chart(fig, use_container_width=True)
+        st.plotly_chart(
+            fig,
+            use_container_width=True
+        )
 
-        st.caption(f"Reasoning: {st.session_state.analysis['reasoning']}")
+        st.caption(
+            f"Reasoning: {st.session_state.analysis['reasoning']}"
+        )
 
         if score >= 80:
             st.success("🌟 Thriving")
@@ -232,15 +278,26 @@ response = model.generate_content(prompt)
             "Talk to someone you trust.",
             "Spend 10 minutes away from screens."
         ]
-        st.info(f"💡 Daily Tip: {random.choice(tips)}")
+
+        st.info(
+            f"💡 Daily Tip: {random.choice(tips)}"
+        )
 
     st.markdown("### Chat History")
 
     for msg in st.session_state.messages:
-        avatar = "🧠" if msg["role"] == "assistant" else "👤"
-        with st.chat_message(msg["role"], avatar=avatar):
-            st.write(msg["message"])
 
+        avatar = (
+            "🧠"
+            if msg["role"] == "assistant"
+            else "👤"
+        )
+
+        with st.chat_message(
+            msg["role"],
+            avatar=avatar
+        ):
+            st.write(msg["message"])
 with tab2:
 
     mood = st.selectbox("Current Mood",
