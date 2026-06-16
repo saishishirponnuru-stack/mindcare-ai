@@ -168,7 +168,8 @@ Current User Message:
         try:
             model = genai.GenerativeModel("gemini-2.5-flash")
 
-            response = model.generate_content(prompt)
+            with st.spinner("Analyzing emotions and generating insights....."):
+                response = model.generate_content(prompt)
 
             raw = response.text
 
@@ -371,20 +372,86 @@ with tab3:
 
 with tab4:
 
+    import sqlite3
+
     data = get_entries()
 
     if len(data) > 0:
-        df = pd.DataFrame(data, columns=["ID","Date","Mood","Entry"])
 
-        a,b,c = st.columns(3)
+        df = pd.DataFrame(
+            data,
+            columns=["ID", "Date", "Mood", "Entry"]
+        )
+
+        a, b, c = st.columns(3)
 
         a.metric("Total Entries", len(df))
         b.metric("Most Common Mood", df["Mood"].mode()[0])
-        c.metric("Conversations", len(st.session_state.messages)//2)
+        c.metric(
+            "Conversations",
+            len(st.session_state.messages) // 2
+        )
 
-        st.dataframe(df, use_container_width=True)
+        st.markdown("### 📋 Journal Entries")
+
+        st.dataframe(
+            df,
+            use_container_width=True
+        )
+
+        st.markdown("---")
+        st.markdown("### ⚠️ Database Controls")
+
+        confirm = st.checkbox(
+            "I understand this will permanently delete all journal entries"
+        )
+
+        if confirm:
+
+            if st.button("🗑 Delete All Journal Entries"):
+
+                conn = sqlite3.connect("journal.db")
+                cursor = conn.cursor()
+
+                cursor.execute("DELETE FROM journal")
+
+                conn.commit()
+                conn.close()
+
+                st.success(
+                    "All journal entries deleted successfully!"
+                )
+
+                st.rerun()
 
     else:
-        st.info("No data available.")
 
-st.caption("Made by Sai Shishir")
+        st.info("No journal entries found.")
+
+        confirm = st.checkbox(
+            "I understand this will permanently delete all journal entries"
+        )
+
+        if confirm:
+
+            if st.button("🗑 Delete All Journal Entries"):
+
+                conn = sqlite3.connect("journal.db")
+                cursor = conn.cursor()
+
+                cursor.execute("DELETE FROM journal")
+
+                conn.commit()
+                conn.close()
+
+                st.success(
+                    "Database cleared successfully!"
+                )
+
+                st.rerun()
+st.markdown("""
+---
+<center>
+MindCare AI v1.0 • Built by Sai Shishir 🚀
+</center>
+""", unsafe_allow_html=True)
